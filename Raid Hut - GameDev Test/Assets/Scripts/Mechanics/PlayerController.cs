@@ -42,6 +42,9 @@ namespace Platformer.Mechanics
 
         public Bounds Bounds => collider2d.bounds;
 
+        //alteração para portabilidade mobile
+        [SerializeField] Joystick joystick;
+
         void Awake()
         {
             health = GetComponent<Health>();
@@ -49,10 +52,13 @@ namespace Platformer.Mechanics
             collider2d = GetComponent<Collider2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             animator = GetComponent<Animator>();
+
+            if (Application.isMobilePlatform) joystick.transform.parent.gameObject.SetActive(true);
         }
 
         protected override void Update()
         {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR
             if (controlEnabled)
             {
                 move.x = Input.GetAxis("Horizontal");
@@ -68,8 +74,34 @@ namespace Platformer.Mechanics
             {
                 move.x = 0;
             }
+            #elif UNITY_ANDROID
+            
+            if (controlEnabled)
+            {
+                move.x = joystick.Horizontal;
+            }
+            else
+            {
+                move.x = 0;
+            }
+
+#endif
+
+
             UpdateJumpState();
             base.Update();
+        }
+
+        //Event para o botão de pular mobile
+        public void StartJump()
+        {
+            if (jumpState == JumpState.Grounded)
+                jumpState = JumpState.PrepareToJump;
+        }
+        public void StopJump()
+        {
+            stopJump = true;
+            Schedule<PlayerStopJump>().player = this;
         }
 
         void UpdateJumpState()
